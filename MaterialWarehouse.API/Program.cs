@@ -1,12 +1,34 @@
+using MaterialWarehouse.API.Infrastructure;
+using MaterialWarehouse.BLL.Interfaces;
+using MaterialWarehouse.BLL.Services;
+using MaterialWarehouse.DAL;
+using MaterialWarehouse.DAL.Interfaces;
+using MaterialWarehouse.DAL.Repositories;
+using Microsoft.EntityFrameworkCore;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
+
+// Налаштування Entity Framework Core з MS SQL Server
+builder.Services.AddDbContext<MaterialWarehouseDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// Реєстрація інфраструктурних сервісів
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+// Реєстрація бізнес-сервісів
+builder.Services.AddScoped<IMaterialService, MaterialService>();
+builder.Services.AddScoped<IOrderService, OrderService>();
+
+// Реєстрація глобального обробника виключень
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+app.UseExceptionHandler();
+
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
@@ -14,28 +36,45 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
+// Ендпоінти для роботи з матеріалами
+var materialsGroup = app.MapGroup("/api/materials");
 
-app.MapGet("/weatherforecast", () =>
+materialsGroup.MapGet("/", async (IMaterialService service) =>
 {
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast");
+    var result = await service.GetInStockMaterialsAsync();
+    return result.IsSuccess ? Results.Ok(result.Value) : Results.BadRequest(result.Error);
+});
+
+materialsGroup.MapGet("/{id:int}", async (int id, IMaterialService service) =>
+{
+    var result = await service.GetByIdAsync(id);
+    return result.IsSuccess ? Results.Ok(result.Value) : Results.NotFound(result.Error);
+});
+
+materialsGroup.MapPost("/{id:int}/adjust", async (int id, int amount, IMaterialService service) =>
+{
+    var result = await service.AdjustStockAsync(id, amount);
+    return result.IsSuccess ? Results.Ok() : Results.BadRequest(result.Error);
+});
+
+// Ендпоінти для роботи із замовленнями
+var ordersGroup = app.MapGroup("/api/orders");
+
+ordersGroup.MapPost("/", async (CreateOrderRequest request, IOrderService service) =>
+{
+    var items = request.Items.Select(i => (i.MaterialId, i.Quantity));
+    var result = await service.CreateOrderAsync(request.UserId, items);
+    return result.IsSuccess ? Results.Created($"/api/orders/{result.Value.Id}", result.Value) : Results.BadRequest(result.Error);
+});
+
+ordersGroup.MapPost("/{id:int}/state", async (int id, string nextState, IOrderService service) =>
+{
+    var result = await service.TransitionOrderStateAsync(id, nextState);
+    return result.IsSuccess ? Results.Ok() : Results.BadRequest(result.Error);
+});
 
 app.Run();
 
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
+// DTO для запитів Minimal API
+public record CreateOrderRequest(int UserId, List<OrderItemRequest> Items);
+public record OrderItemRequest(int MaterialId, int Quantity);
