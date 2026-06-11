@@ -16,4 +16,8 @@ public class MaterialWarehouseDbContext(DbContextOptions<MaterialWarehouseDbCont
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(MaterialWarehouseDbContext).Assembly);
     }
+
+    public DbSet<Supplier> Suppliers => Set<Supplier>();
+
+    public DbSet<StockTransaction> StockTransactions => Set<StockTransaction>();
 }

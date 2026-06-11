@@ -6,6 +6,9 @@ public class Material
     public string Name { get; private set; } = null!;
     public string Description { get; private set; } = null!;
     public int Quantity { get; private set; }
+
+    public int MinStockLimit { get; private set; }
+    public int ReservedQuantity { get; private set; }
     public string Unit { get; private set; } = null!;
     public int CategoryId { get; private set; }
     public Category? Category { get; set; }
@@ -14,7 +17,14 @@ public class Material
 
     protected Material() { }
 
-    public Material(int id, string name, string description, int quantity, string unit, int categoryId)
+    public Material(
+    int id,
+    string name,
+    string description,
+    int quantity,
+    string unit,
+    int categoryId,
+    int minStockLimit)
     {
         Id = id;
         Name = name;
@@ -22,11 +32,21 @@ public class Material
         Quantity = quantity;
         Unit = unit;
         CategoryId = categoryId;
+        MinStockLimit = minStockLimit;
     }
-
     public void AdjustQuantity(int amount)
     {
         Quantity += amount;
+    }
+
+    public void Reserve(int quantity)
+    {
+        ReservedQuantity += quantity;
+    }
+
+    public void ReleaseReserve(int quantity)
+    {
+        ReservedQuantity -= quantity;
     }
 }
 

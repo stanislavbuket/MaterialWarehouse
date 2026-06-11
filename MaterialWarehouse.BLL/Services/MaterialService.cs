@@ -9,6 +9,70 @@ namespace MaterialWarehouse.BLL.Services;
 
 public class MaterialService(IUnitOfWork unitOfWork) : IMaterialService
 {
+
+    public async Task<Result> ReceiveStockAsync(
+    int materialId,
+    int quantity,
+    int supplierId,
+    int managerId)
+    {
+        var materialRepo = unitOfWork.GetRepository<Material>();
+        var transactionRepo = unitOfWork.GetRepository<StockTransaction>();
+
+        var material = await materialRepo.GetByIdAsync(materialId);
+
+        if (material == null)
+            return Result.Failure(MaterialErrors.NotFound);
+
+        material.AdjustQuantity(quantity);
+
+        materialRepo.Update(material);
+
+        var transaction = new StockTransaction(
+            materialId,
+            TransactionType.Receive,
+            quantity,
+            managerId);
+
+        await transactionRepo.AddAsync(transaction);
+
+        await unitOfWork.SaveChangesAsync();
+
+        return Result.Success();
+    }
+
+    public async Task<Result> WriteOffStockAsync(
+        int materialId,
+        int quantity,
+        int managerId)
+    {
+        var materialRepo = unitOfWork.GetRepository<Material>();
+        var transactionRepo = unitOfWork.GetRepository<StockTransaction>();
+
+        var material = await materialRepo.GetByIdAsync(materialId);
+
+        if (material == null)
+            return Result.Failure(MaterialErrors.NotFound);
+
+        if (material.Quantity < quantity)
+            return Result.Failure(MaterialErrors.OutOfStock);
+
+        material.AdjustQuantity(-quantity);
+
+        materialRepo.Update(material);
+
+        var transaction = new StockTransaction(
+            materialId,
+            TransactionType.WriteOff,
+            quantity,
+            managerId);
+
+        await transactionRepo.AddAsync(transaction);
+
+        await unitOfWork.SaveChangesAsync();
+
+        return Result.Success();
+    }
     public async Task<Result<IEnumerable<MaterialDto>>> GetInStockMaterialsAsync()
     {
         var repo = unitOfWork.GetRepository<Material>();
