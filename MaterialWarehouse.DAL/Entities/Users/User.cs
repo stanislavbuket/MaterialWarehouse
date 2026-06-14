@@ -1,4 +1,4 @@
-namespace MaterialWarehouse.DAL.Entities.Users;
+﻿namespace MaterialWarehouse.DAL.Entities.Users;
 
 public abstract class User
 {

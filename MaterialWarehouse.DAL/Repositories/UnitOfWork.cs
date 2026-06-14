@@ -1,4 +1,4 @@
-using MaterialWarehouse.DAL.Interfaces;
+﻿using MaterialWarehouse.DAL.Interfaces;
 using System.Collections.Concurrent;
 
 namespace MaterialWarehouse.DAL.Repositories;

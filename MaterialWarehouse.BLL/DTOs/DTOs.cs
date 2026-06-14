@@ -1,4 +1,4 @@
-namespace MaterialWarehouse.BLL.DTOs;
+﻿namespace MaterialWarehouse.BLL.DTOs;
 
 public record OrderDto(
 int Id,

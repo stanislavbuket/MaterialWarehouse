@@ -1,4 +1,4 @@
-using MaterialWarehouse.DAL.Interfaces;
+﻿using MaterialWarehouse.DAL.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
 namespace MaterialWarehouse.DAL.Repositories;
