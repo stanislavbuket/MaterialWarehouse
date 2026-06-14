@@ -27,13 +27,15 @@ builder.Services.AddProblemDetails();
 
 var app = builder.Build();
 
+// Ініціалізація бази даних (з безпечним відловом помилок)
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
     try
     {
         var context = services.GetRequiredService<MaterialWarehouseDbContext>();
-        //DbInitializer.Initialize(context);
+        // ВИПРАВЛЕНО (CS0117): замінено Initialize на правильний асинхронний метод SeedAsync
+        await DbInitializer.SeedAsync(context);
     }
     catch (Exception ex)
     {
@@ -87,13 +89,6 @@ ordersGroup.MapPost("/{id:int}/state", async (int id, string nextState, IOrderSe
     var result = await service.TransitionOrderStateAsync(id, nextState);
     return result.IsSuccess ? Results.Ok() : Results.BadRequest(result.Error);
 });
-
-using (var scope = app.Services.CreateScope())
-{
-    var services = scope.ServiceProvider;
-    var context = services.GetRequiredService<MaterialWarehouse.DAL.MaterialWarehouseDbContext>();
-    //await MaterialWarehouse.DAL.DbInitializer.SeedAsync(context);
-}
 
 app.Run();
 
