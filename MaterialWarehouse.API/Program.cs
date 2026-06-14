@@ -33,7 +33,7 @@ using (var scope = app.Services.CreateScope())
     try
     {
         var context = services.GetRequiredService<MaterialWarehouseDbContext>();
-        DbInitializer.Initialize(context);
+        //DbInitializer.Initialize(context);
     }
     catch (Exception ex)
     {
@@ -92,7 +92,7 @@ using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
     var context = services.GetRequiredService<MaterialWarehouse.DAL.MaterialWarehouseDbContext>();
-    await MaterialWarehouse.DAL.DbInitializer.SeedAsync(context);
+    //await MaterialWarehouse.DAL.DbInitializer.SeedAsync(context);
 }
 
 app.Run();
