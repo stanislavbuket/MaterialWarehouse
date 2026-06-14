@@ -12,7 +12,5 @@ public record MaterialDto(
     int ReservedQuantity
 )
 {
-    // Робимо IsInStock автоматичним властивістю-геттером, 
-    // щоб сервісу не довелося передавати його вручну!
     public bool IsInStock => Quantity > 0;
 }
