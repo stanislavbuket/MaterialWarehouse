@@ -14,7 +14,14 @@ public class DomainTests
     {
         var uow = Substitute.For<IUnitOfWork>();
         var repo = Substitute.For<IRepository<Material>>();
-        var material = new Material(1, "Цегла", "Будівельна цегла", 100, "шт", 1);
+        var material = new Material(
+    1,
+    "Цегла",
+    "Будівельна цегла",
+    100,
+    "шт",
+    1,
+    10);
 
         repo.GetByIdAsync(1).Returns(material);
         uow.GetRepository<Material>().Returns(repo);
@@ -33,7 +40,14 @@ public class DomainTests
     {
         var uow = Substitute.For<IUnitOfWork>();
         var repo = Substitute.For<IRepository<Material>>();
-        var material = new Material(1, "Цегла", "Будівельна цегла", 50, "шт", 1);
+        var material = new Material(
+    1,
+    "Цегла",
+    "Будівельна цегла",
+    50,
+    "шт",
+    1,
+    10);
 
         repo.GetByIdAsync(1).Returns(material);
         uow.GetRepository<Material>().Returns(repo);

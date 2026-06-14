@@ -24,32 +24,31 @@ public class Order
 
     public void AddItem(OrderItem item)
     {
+        if (State != OrderState.Created)
+        {
+            throw new InvalidOperationException("Неможливо додати позицію до замовлення, яке вже обробляється або закрите.");
+        }
         _items.Add(item);
     }
 
     public void TransitionTo(OrderState next)
     {
+        bool isValid = State switch
+        {
+            OrderState.Created => next == OrderState.Placed || next == OrderState.Cancelled,
+            OrderState.Placed => next == OrderState.Approved || next == OrderState.Cancelled,
+            OrderState.Approved => next == OrderState.Shipped || next == OrderState.Cancelled,
+            OrderState.Shipped => next == OrderState.Delivered,
+            OrderState.Delivered => false, // Кінцевий статус
+            OrderState.Cancelled => false, // Кінцевий статус
+            _ => false
+        };
+
+        if (!isValid)
+        {
+            throw new InvalidOperationException($"Некоректний перехід зі статусу {State} до {next}.");
+        }
+
         State = next;
-    }
-}
-
-public class OrderItem
-{
-    public int Id { get; set; }
-    public int OrderId { get; set; }
-    public int MaterialId { get; set; }
-    public Material? Material { get; set; }
-    public int Quantity { get; set; }
-    public bool IsPreOrder { get; set; }
-
-    public OrderItem() { }
-
-    public OrderItem(int id, int orderId, int materialId, int quantity, bool isPreOrder)
-    {
-        Id = id;
-        OrderId = orderId;
-        MaterialId = materialId;
-        Quantity = quantity;
-        IsPreOrder = isPreOrder;
     }
 }
