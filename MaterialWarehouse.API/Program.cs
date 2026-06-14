@@ -27,6 +27,21 @@ builder.Services.AddProblemDetails();
 
 var app = builder.Build();
 
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    try
+    {
+        var context = services.GetRequiredService<MaterialWarehouseDbContext>();
+        DbInitializer.Initialize(context);
+    }
+    catch (Exception ex)
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "Помилка під час ініціалізації бази даних.");
+    }
+}
+
 app.UseExceptionHandler();
 
 if (app.Environment.IsDevelopment())
