@@ -12,7 +12,7 @@ builder.Services.AddOpenApi();
 
 // Налаштування Entity Framework Core з MS SQL Server
 builder.Services.AddDbContext<MaterialWarehouseDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+       options.UseInMemoryDatabase("MaterialWarehouseDb"));
 
 // Реєстрація інфраструктурних сервісів
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();

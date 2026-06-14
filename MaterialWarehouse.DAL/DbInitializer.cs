@@ -7,6 +7,8 @@ public static class DbInitializer
 {
     public static async Task SeedAsync(MaterialWarehouseDbContext context)
     {
+        //Створює базу даних та таблиці, якщо їх ще немає
+        await context.Database.EnsureCreatedAsync();
         // Перевіряємо, чи база вже не заповнена
         if (context.Users.Any() || context.Categories.Any()) return;
 
