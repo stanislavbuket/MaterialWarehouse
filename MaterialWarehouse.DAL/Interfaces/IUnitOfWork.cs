@@ -1,4 +1,4 @@
-namespace MaterialWarehouse.DAL.Interfaces;
+﻿namespace MaterialWarehouse.DAL.Interfaces;
 
 public interface IUnitOfWork : IDisposable
 {

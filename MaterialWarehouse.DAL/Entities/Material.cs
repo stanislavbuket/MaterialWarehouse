@@ -1,4 +1,4 @@
-namespace MaterialWarehouse.DAL.Entities;
+﻿namespace MaterialWarehouse.DAL.Entities;
 
 public class Material
 {

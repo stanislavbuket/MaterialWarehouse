@@ -1,4 +1,4 @@
-using MaterialWarehouse.BLL.Common;
+﻿using MaterialWarehouse.BLL.Common;
 
 namespace MaterialWarehouse.BLL.Errors;
 

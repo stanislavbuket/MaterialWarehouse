@@ -1,4 +1,4 @@
-namespace MaterialWarehouse.BLL.Common;
+﻿namespace MaterialWarehouse.BLL.Common;
 
 public class Result
 {

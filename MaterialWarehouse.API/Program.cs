@@ -1,4 +1,4 @@
-using MaterialWarehouse.API.Infrastructure;
+﻿using MaterialWarehouse.API.Infrastructure;
 using MaterialWarehouse.BLL.Interfaces;
 using MaterialWarehouse.BLL.Services;
 using MaterialWarehouse.DAL;
@@ -26,6 +26,21 @@ builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    try
+    {
+        var context = services.GetRequiredService<MaterialWarehouseDbContext>();
+        DbInitializer.Initialize(context);
+    }
+    catch (Exception ex)
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "Помилка під час ініціалізації бази даних.");
+    }
+}
 
 app.UseExceptionHandler();
 

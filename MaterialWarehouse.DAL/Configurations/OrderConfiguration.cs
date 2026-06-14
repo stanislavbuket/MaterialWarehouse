@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using MaterialWarehouse.DAL.Entities;
 using MaterialWarehouse.DAL.Entities.Users;

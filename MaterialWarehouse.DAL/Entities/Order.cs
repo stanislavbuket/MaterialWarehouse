@@ -1,4 +1,4 @@
-using MaterialWarehouse.DAL.Entities.Users;
+﻿using MaterialWarehouse.DAL.Entities.Users;
 
 namespace MaterialWarehouse.DAL.Entities;
 

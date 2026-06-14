@@ -1,4 +1,4 @@
-namespace MaterialWarehouse.DAL.Interfaces;
+﻿namespace MaterialWarehouse.DAL.Interfaces;
 
 public interface IRepository<T> where T : class
 {
