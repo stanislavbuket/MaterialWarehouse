@@ -73,6 +73,13 @@ ordersGroup.MapPost("/{id:int}/state", async (int id, string nextState, IOrderSe
     return result.IsSuccess ? Results.Ok() : Results.BadRequest(result.Error);
 });
 
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    var context = services.GetRequiredService<MaterialWarehouse.DAL.MaterialWarehouseDbContext>();
+    await MaterialWarehouse.DAL.DbInitializer.SeedAsync(context);
+}
+
 app.Run();
 
 // DTO для запитів Minimal API

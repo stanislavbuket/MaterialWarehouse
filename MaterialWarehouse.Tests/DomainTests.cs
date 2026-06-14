@@ -98,4 +98,74 @@ public class DomainTests
         repo.DidNotReceive().Update(Arg.Any<Order>());
         await uow.DidNotReceive().SaveChangesAsync();
     }
+
+    // ==========================================
+    // НОВІ ДОДАТКОВІ ТЕСТИ (НАРОЩУЄМО ОБ'ЄМ)
+    // ==========================================
+
+    [Fact]
+    public async Task AdjustStockAsync_MaterialNotFound_ReturnsNotFoundError()
+    {
+        // Arrange
+        var uow = Substitute.For<IUnitOfWork>();
+        var repo = Substitute.For<IRepository<Material>>();
+
+        // Повертаємо null, ніби матеріалу з Id = 999 не існує в базі
+        repo.GetByIdAsync(999).Returns((Material)null);
+        uow.GetRepository<Material>().Returns(repo);
+
+        var service = new MaterialService(uow);
+
+        // Act
+        var result = await service.AdjustStockAsync(999, 10);
+
+        // Assert
+        Assert.True(result.IsFailure);
+        repo.DidNotReceive().Update(Arg.Any<Material>());
+        await uow.DidNotReceive().SaveChangesAsync();
+    }
+
+    [Fact]
+    public async Task AdjustStockAsync_WithPositiveAmount_SuccessfullyAddsStock()
+    {
+        // Arrange
+        var uow = Substitute.For<IUnitOfWork>();
+        var repo = Substitute.For<IRepository<Material>>();
+        var material = new Material(2, "Кабель", "Електричний кабель", 50, "м", 1, 5);
+
+        repo.GetByIdAsync(2).Returns(material);
+        uow.GetRepository<Material>().Returns(repo);
+
+        var service = new MaterialService(uow);
+
+        // Act - додаємо 50 одиниць до залишку
+        var result = await service.AdjustStockAsync(2, 50);
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.Equal(100, material.Quantity); // Було 50 + стало 50 = 100
+        repo.Received(1).Update(material);
+        await uow.Received(1).SaveChangesAsync();
+    }
+
+    [Fact]
+    public async Task TransitionOrderStateAsync_OrderNotFound_ReturnsNotFoundError()
+    {
+        // Arrange
+        var uow = Substitute.For<IUnitOfWork>();
+        var repo = Substitute.For<IRepository<Order>>();
+
+        repo.GetByIdAsync(999).Returns((Order)null);
+        uow.GetRepository<Order>().Returns(repo);
+
+        var service = new OrderService(uow);
+
+        // Act
+        var result = await service.TransitionOrderStateAsync(999, "Placed");
+
+        // Assert
+        Assert.True(result.IsFailure);
+        repo.DidNotReceive().Update(Arg.Any<Order>());
+        await uow.DidNotReceive().SaveChangesAsync();
+    }
 }
