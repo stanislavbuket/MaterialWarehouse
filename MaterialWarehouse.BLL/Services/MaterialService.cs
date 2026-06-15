@@ -1,4 +1,4 @@
-﻿using MaterialWarehouse.BLL.Common;
+using MaterialWarehouse.BLL.Common;
 using MaterialWarehouse.BLL.DTOs;
 using MaterialWarehouse.BLL.Interfaces;
 using MaterialWarehouse.BLL.Mappings;
@@ -96,6 +96,9 @@ public class MaterialService(IUnitOfWork unitOfWork) : IMaterialService
         var material = await repo.GetByIdAsync(id);
         if (material == null)
             return Result.Failure(MaterialErrors.NotFound);
+
+        if (material.Quantity + amount < 0)
+            return Result.Failure(MaterialErrors.OutOfStock);
 
         material.AdjustQuantity(amount);
 
