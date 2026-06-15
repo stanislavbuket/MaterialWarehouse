@@ -14,24 +14,31 @@ public class DomainTests
     {
         var uow = Substitute.For<IUnitOfWork>();
         var repo = Substitute.For<IRepository<Material>>();
+        var transactionRepo = Substitute.For<IRepository<StockTransaction>>();
         var material = new Material(
-    1,
-    "Цегла",
-    "Будівельна цегла",
-    100,
-    "шт",
-    1,
-    10);
+            1,
+            "Цегла",
+            "Будівельна цегла",
+            100,
+            "шт",
+            1,
+            10);
 
         repo.GetByIdAsync(1).Returns(material);
         uow.GetRepository<Material>().Returns(repo);
+        uow.GetRepository<StockTransaction>().Returns(transactionRepo);
 
         var service = new MaterialService(uow);
-        var result = await service.AdjustStockAsync(1, -30);
+        var result = await service.AdjustStockAsync(1, -30, 42);
 
         Assert.True(result.IsSuccess);
         Assert.Equal(70, material.Quantity);
         repo.Received(1).Update(material);
+        await transactionRepo.Received(1).AddAsync(Arg.Is<StockTransaction>(t =>
+            t.MaterialId == 1 &&
+            t.Type == TransactionType.WriteOff &&
+            t.Quantity == 30 &&
+            t.ManagerId == 42));
         await uow.Received(1).SaveChangesAsync();
     }
 
@@ -111,7 +118,7 @@ public class DomainTests
         var repo = Substitute.For<IRepository<Material>>();
 
         // Повертаємо null, ніби матеріалу з Id = 999 не існує в базі
-        repo.GetByIdAsync(999).Returns((Material)null);
+        repo.GetByIdAsync(999).Returns((Material?)null);
         uow.GetRepository<Material>().Returns(repo);
 
         var service = new MaterialService(uow);
@@ -131,20 +138,27 @@ public class DomainTests
         // Arrange
         var uow = Substitute.For<IUnitOfWork>();
         var repo = Substitute.For<IRepository<Material>>();
+        var transactionRepo = Substitute.For<IRepository<StockTransaction>>();
         var material = new Material(2, "Кабель", "Електричний кабель", 50, "м", 1, 5);
 
         repo.GetByIdAsync(2).Returns(material);
         uow.GetRepository<Material>().Returns(repo);
+        uow.GetRepository<StockTransaction>().Returns(transactionRepo);
 
         var service = new MaterialService(uow);
 
         // Act - додаємо 50 одиниць до залишку
-        var result = await service.AdjustStockAsync(2, 50);
+        var result = await service.AdjustStockAsync(2, 50, 42);
 
         // Assert
         Assert.True(result.IsSuccess);
         Assert.Equal(100, material.Quantity); // Було 50 + стало 50 = 100
         repo.Received(1).Update(material);
+        await transactionRepo.Received(1).AddAsync(Arg.Is<StockTransaction>(t =>
+            t.MaterialId == 2 &&
+            t.Type == TransactionType.Receive &&
+            t.Quantity == 50 &&
+            t.ManagerId == 42));
         await uow.Received(1).SaveChangesAsync();
     }
 
@@ -155,7 +169,7 @@ public class DomainTests
         var uow = Substitute.For<IUnitOfWork>();
         var repo = Substitute.For<IRepository<Order>>();
 
-        repo.GetByIdAsync(999).Returns((Order)null);
+        repo.GetByIdAsync(999).Returns((Order?)null);
         uow.GetRepository<Order>().Returns(repo);
 
         var service = new OrderService(uow);
@@ -303,6 +317,66 @@ public class DomainTests
         Assert.Equal(10, material.Quantity);
         Assert.Equal(0, material.ReservedQuantity);
         materialRepo.Received(1).Update(material);
+        await uow.Received(1).SaveChangesAsync();
+    }
+
+    [Fact]
+    public async Task ReceiveStockAsync_WithValidData_UpdatesQuantityAndLogsTransaction()
+    {
+        // Arrange
+        var uow = Substitute.For<IUnitOfWork>();
+        var repo = Substitute.For<IRepository<Material>>();
+        var transactionRepo = Substitute.For<IRepository<StockTransaction>>();
+        var material = new Material(1, "Цегла", "Будівельна цегла", 10, "шт", 1, 5);
+
+        repo.GetByIdAsync(1).Returns(material);
+        uow.GetRepository<Material>().Returns(repo);
+        uow.GetRepository<StockTransaction>().Returns(transactionRepo);
+
+        var service = new MaterialService(uow);
+
+        // Act
+        var result = await service.ReceiveStockAsync(1, 20, 99);
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.Equal(30, material.Quantity);
+        repo.Received(1).Update(material);
+        await transactionRepo.Received(1).AddAsync(Arg.Is<StockTransaction>(t =>
+            t.MaterialId == 1 &&
+            t.Type == TransactionType.Receive &&
+            t.Quantity == 20 &&
+            t.ManagerId == 99));
+        await uow.Received(1).SaveChangesAsync();
+    }
+
+    [Fact]
+    public async Task WriteOffStockAsync_WithValidData_UpdatesQuantityAndLogsTransaction()
+    {
+        // Arrange
+        var uow = Substitute.For<IUnitOfWork>();
+        var repo = Substitute.For<IRepository<Material>>();
+        var transactionRepo = Substitute.For<IRepository<StockTransaction>>();
+        var material = new Material(1, "Цегла", "Будівельна цегла", 10, "шт", 1, 5);
+
+        repo.GetByIdAsync(1).Returns(material);
+        uow.GetRepository<Material>().Returns(repo);
+        uow.GetRepository<StockTransaction>().Returns(transactionRepo);
+
+        var service = new MaterialService(uow);
+
+        // Act
+        var result = await service.WriteOffStockAsync(1, 3, 99);
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.Equal(7, material.Quantity);
+        repo.Received(1).Update(material);
+        await transactionRepo.Received(1).AddAsync(Arg.Is<StockTransaction>(t =>
+            t.MaterialId == 1 &&
+            t.Type == TransactionType.WriteOff &&
+            t.Quantity == 3 &&
+            t.ManagerId == 99));
         await uow.Received(1).SaveChangesAsync();
     }
 }

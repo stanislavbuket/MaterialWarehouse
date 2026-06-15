@@ -1,4 +1,4 @@
-using MaterialWarehouse.BLL.Common;
+﻿using MaterialWarehouse.BLL.Common;
 using MaterialWarehouse.BLL.DTOs;
 using MaterialWarehouse.BLL.Interfaces;
 using MaterialWarehouse.BLL.Mappings;
@@ -90,7 +90,32 @@ public class MaterialService(IUnitOfWork unitOfWork) : IMaterialService
         return Result.Success(inStock);
     }
 
-    public async Task<Result> AdjustStockAsync(int id, int amount)
+    public async Task<Result> AdjustStockAsync(int id, int amount, int managerId = 0)
+    {
+        if (amount == 0)
+            return Result.Success();
+
+        var type = amount > 0 ? TransactionType.Receive : TransactionType.WriteOff;
+        return await AdjustStockInternalAsync(id, amount, type, managerId);
+    }
+
+    public async Task<Result> ReceiveStockAsync(int id, int amount, int managerId = 0)
+    {
+        if (amount <= 0)
+            return Result.Failure(new Error("InvalidAmount", "Кількість для прийому повинна бути більшою за нуль."));
+
+        return await AdjustStockInternalAsync(id, amount, TransactionType.Receive, managerId);
+    }
+
+    public async Task<Result> WriteOffStockAsync(int id, int amount, int managerId = 0)
+    {
+        if (amount <= 0)
+            return Result.Failure(new Error("InvalidAmount", "Кількість для списання повинна бути більшою за нуль."));
+
+        return await AdjustStockInternalAsync(id, -amount, TransactionType.WriteOff, managerId);
+    }
+
+    private async Task<Result> AdjustStockInternalAsync(int id, int amount, TransactionType type, int managerId)
     {
         var repo = unitOfWork.GetRepository<Material>();
         var material = await repo.GetByIdAsync(id);
@@ -101,8 +126,17 @@ public class MaterialService(IUnitOfWork unitOfWork) : IMaterialService
             return Result.Failure(MaterialErrors.OutOfStock);
 
         material.AdjustQuantity(amount);
-
         repo.Update(material);
+
+        var transactionRepo = unitOfWork.GetRepository<StockTransaction>();
+        var transaction = new StockTransaction(
+            material.Id,
+            type,
+            Math.Abs(amount),
+            managerId
+        );
+        await transactionRepo.AddAsync(transaction);
+
         await unitOfWork.SaveChangesAsync();
         return Result.Success();
     }

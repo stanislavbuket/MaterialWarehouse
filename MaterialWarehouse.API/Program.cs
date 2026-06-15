@@ -27,6 +27,7 @@ builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IMaterialService, MaterialService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IReportService, ReportService>();
 
 // Налаштування JWT-автентифікації
 var jwtKey = "SuperSecretKey123456789012345678901234567890";
@@ -149,9 +150,11 @@ materialsGroup.MapGet("/{id:int}", async (int id, IMaterialService service) =>
     return result.IsSuccess ? Results.Ok(result.Value) : Results.NotFound(result.Error);
 });
 
-materialsGroup.MapPost("/{id:int}/adjust", async (int id, int amount, IMaterialService service) =>
+materialsGroup.MapPost("/{id:int}/adjust", async (int id, int amount, ClaimsPrincipal user, IMaterialService service) =>
 {
-    var result = await service.AdjustStockAsync(id, amount);
+    var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+    int managerId = int.TryParse(userIdClaim, out var parsedId) ? parsedId : 0;
+    var result = await service.AdjustStockAsync(id, amount, managerId);
     return result.IsSuccess ? Results.Ok() : Results.BadRequest(result.Error);
 }).RequireAuthorization("AdminOrManager");
 
@@ -173,8 +176,25 @@ ordersGroup.MapPost("/{id:int}/state", async (int id, string nextState, ClaimsPr
     return result.IsSuccess ? Results.Ok() : Results.BadRequest(result.Error);
 }).RequireAuthorization("AdminOrManager");
 
+// Ендпоінти для звітів
+var reportsGroup = app.MapGroup("/api/reports");
+
+reportsGroup.MapGet("/low-stock", async (IReportService service) =>
+{
+    var result = await service.GetLowStockReportAsync();
+    return result.IsSuccess ? Results.Ok(result.Value) : Results.BadRequest(result.Error);
+}).RequireAuthorization("AdminOrManager");
+
+reportsGroup.MapGet("/deficit", async (IReportService service) =>
+{
+    var result = await service.GetDeficitReportAsync();
+    return result.IsSuccess ? Results.Ok(result.Value) : Results.BadRequest(result.Error);
+}).RequireAuthorization("AdminOrManager");
+
 app.Run();
 
 // DTO для запитів Minimal API
 public record CreateOrderRequest(int UserId, List<OrderItemRequest> Items);
 public record OrderItemRequest(int MaterialId, int Quantity);
+
+public partial class Program { }

@@ -11,5 +11,7 @@ public interface IMaterialService
     Task<Result> UpdateAsync(int id, UpdateMaterialDto dto);
     Task<Result> DeleteAsync(int id);
     Task<Result<IEnumerable<MaterialDto>>> GetInStockMaterialsAsync();
-    Task<Result> AdjustStockAsync(int id, int amount);
+    Task<Result> AdjustStockAsync(int id, int amount, int managerId = 0);
+    Task<Result> ReceiveStockAsync(int id, int amount, int managerId = 0);
+    Task<Result> WriteOffStockAsync(int id, int amount, int managerId = 0);
 }
