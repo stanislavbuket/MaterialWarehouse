@@ -17,14 +17,14 @@ public static class DbInitializer
             id: 0,
             username: "admin_boss",
             email: "admin@warehouse.com",
-            passwordHash: "AdminStrictPassword2026_Hashed"
+            passwordHash: "DkS2h9LiZb9H7tJiByUA2ayHhWI6ajDiqb8HrVjrgEc="
         );
 
         var manager = new Manager(
             id: 0,
             username: "manager_john",
             email: "john@warehouse.com",
-            passwordHash: "ManagerPass123_Hashed",
+            passwordHash: "ew257Gb1/l+FBW9hhE6lEtMg+kCzI6xbKhYf7cz5w1c=",
             department: "Головний склад"
         );
 
