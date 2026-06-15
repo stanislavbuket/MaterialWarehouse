@@ -1,4 +1,4 @@
-﻿namespace MaterialWarehouse.DAL.Entities;
+namespace MaterialWarehouse.DAL.Entities;
 
 public class Material
 {
@@ -13,6 +13,7 @@ public class Material
     public Category? Category { get; set; }
 
     public bool IsInStock => Quantity > 0;
+    public int AvailableQuantity => Quantity - ReservedQuantity;
 
     protected Material() { }
 
@@ -59,13 +60,37 @@ public class Material
     public void ReleaseReserve(int quantity)
     {
         if (quantity <= 0)
+        {
             throw new ArgumentException("Кількість для зняття з резерву повинна бути більшою за нуль.");
+        }
 
         if (ReservedQuantity - quantity < 0)
         {
             throw new InvalidOperationException("Кількість зарезервованого товару не може стати меншою за нуль.");
         }
+
         ReservedQuantity -= quantity;
+    }
+
+    public void ShipReserved(int quantity)
+    {
+        if (quantity <= 0)
+        {
+            throw new ArgumentException("Кількість для відвантаження повинна бути більшою за нуль.");
+        }
+
+        if (ReservedQuantity < quantity)
+        {
+            throw new InvalidOperationException("Недостатньо зарезервованого товару для відвантаження.");
+        }
+
+        if (Quantity < quantity)
+        {
+            throw new InvalidOperationException("Недостатньо фізичного залишку товару на складі.");
+        }
+
+        ReservedQuantity -= quantity;
+        Quantity -= quantity;
     }
 
     public void UpdateDetails(string name, string description, int minStockLimit, int categoryId)
