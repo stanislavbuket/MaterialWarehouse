@@ -168,4 +168,141 @@ public class DomainTests
         repo.DidNotReceive().Update(Arg.Any<Order>());
         await uow.DidNotReceive().SaveChangesAsync();
     }
+
+    [Fact]
+    public async Task CreateOrderAsync_WithInStockMaterial_ReservesStockAndCreatesOrder()
+    {
+        // Arrange
+        var uow = Substitute.For<IUnitOfWork>();
+        var materialRepo = Substitute.For<IRepository<Material>>();
+        var orderRepo = Substitute.For<IRepository<Order>>();
+
+        var material = new Material(1, "Цегла", "Будівельна цегла", 10, "шт", 1, 5);
+
+        materialRepo.GetByIdAsync(1).Returns(material);
+        uow.GetRepository<Material>().Returns(materialRepo);
+        uow.GetRepository<Order>().Returns(orderRepo);
+
+        var service = new OrderService(uow);
+        var items = new List<(int materialId, int quantity)> { (1, 4) };
+
+        // Act
+        var result = await service.CreateOrderAsync(1, items);
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.Equal(4, material.ReservedQuantity);
+        Assert.Equal(6, material.AvailableQuantity);
+        materialRepo.Received(1).Update(material);
+        await orderRepo.Received(1).AddAsync(Arg.Any<Order>());
+        await uow.Received(1).SaveChangesAsync();
+    }
+
+    [Fact]
+    public async Task CreateOrderAsync_WithPreOrderMaterial_MarksAsPreOrderWithoutReservation()
+    {
+        // Arrange
+        var uow = Substitute.For<IUnitOfWork>();
+        var materialRepo = Substitute.For<IRepository<Material>>();
+        var orderRepo = Substitute.For<IRepository<Order>>();
+
+        var material = new Material(1, "Цегла", "Будівельна цегла", 10, "шт", 1, 5);
+
+        materialRepo.GetByIdAsync(1).Returns(material);
+        uow.GetRepository<Material>().Returns(materialRepo);
+        uow.GetRepository<Order>().Returns(orderRepo);
+
+        var service = new OrderService(uow);
+        var items = new List<(int materialId, int quantity)> { (1, 12) };
+
+        // Act
+        var result = await service.CreateOrderAsync(1, items);
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.Equal(0, material.ReservedQuantity);
+        Assert.Equal(10, material.AvailableQuantity);
+        materialRepo.DidNotReceive().Update(Arg.Any<Material>());
+        await orderRepo.Received(1).AddAsync(Arg.Is<Order>(o => o.Items.First().IsPreOrder == true));
+        await uow.Received(1).SaveChangesAsync();
+    }
+
+    [Fact]
+    public async Task TransitionOrderStateAsync_ToShipped_ShipsReservedAndLogsTransaction()
+    {
+        // Arrange
+        var uow = Substitute.For<IUnitOfWork>();
+        var orderRepo = Substitute.For<IRepository<Order>>();
+        var orderItemRepo = Substitute.For<IRepository<OrderItem>>();
+        var materialRepo = Substitute.For<IRepository<Material>>();
+        var transactionRepo = Substitute.For<IRepository<StockTransaction>>();
+
+        var material = new Material(1, "Цегла", "Будівельна цегла", 10, "шт", 1, 5);
+        material.Reserve(4);
+
+        var order = new Order(1) { Id = 101, State = OrderState.Approved };
+        var orderItem = new OrderItem(1, 101, 1, 4, false);
+
+        orderRepo.GetByIdAsync(101).Returns(order);
+        materialRepo.GetByIdAsync(1).Returns(material);
+        orderItemRepo.GetAllAsync().Returns(new List<OrderItem> { orderItem });
+
+        uow.GetRepository<Order>().Returns(orderRepo);
+        uow.GetRepository<OrderItem>().Returns(orderItemRepo);
+        uow.GetRepository<Material>().Returns(materialRepo);
+        uow.GetRepository<StockTransaction>().Returns(transactionRepo);
+
+        var service = new OrderService(uow);
+
+        // Act
+        var result = await service.TransitionOrderStateAsync(101, "Shipped", 42);
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.Equal(6, material.Quantity);
+        Assert.Equal(0, material.ReservedQuantity);
+        materialRepo.Received(1).Update(material);
+        await transactionRepo.Received(1).AddAsync(Arg.Is<StockTransaction>(t =>
+            t.MaterialId == 1 &&
+            t.Type == TransactionType.Sale &&
+            t.Quantity == 4 &&
+            t.ManagerId == 42));
+        await uow.Received(1).SaveChangesAsync();
+    }
+
+    [Fact]
+    public async Task TransitionOrderStateAsync_ToCancelled_ReleasesReserved()
+    {
+        // Arrange
+        var uow = Substitute.For<IUnitOfWork>();
+        var orderRepo = Substitute.For<IRepository<Order>>();
+        var orderItemRepo = Substitute.For<IRepository<OrderItem>>();
+        var materialRepo = Substitute.For<IRepository<Material>>();
+
+        var material = new Material(1, "Цегла", "Будівельна цегла", 10, "шт", 1, 5);
+        material.Reserve(4);
+
+        var order = new Order(1) { Id = 101, State = OrderState.Approved };
+        var orderItem = new OrderItem(1, 101, 1, 4, false);
+
+        orderRepo.GetByIdAsync(101).Returns(order);
+        materialRepo.GetByIdAsync(1).Returns(material);
+        orderItemRepo.GetAllAsync().Returns(new List<OrderItem> { orderItem });
+
+        uow.GetRepository<Order>().Returns(orderRepo);
+        uow.GetRepository<OrderItem>().Returns(orderItemRepo);
+        uow.GetRepository<Material>().Returns(materialRepo);
+
+        var service = new OrderService(uow);
+
+        // Act
+        var result = await service.TransitionOrderStateAsync(101, "Cancelled");
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.Equal(10, material.Quantity);
+        Assert.Equal(0, material.ReservedQuantity);
+        materialRepo.Received(1).Update(material);
+        await uow.Received(1).SaveChangesAsync();
+    }
 }

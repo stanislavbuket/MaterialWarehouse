@@ -1,4 +1,4 @@
-using MaterialWarehouse.API.Infrastructure;
+﻿using MaterialWarehouse.API.Infrastructure;
 using MaterialWarehouse.BLL.Interfaces;
 using MaterialWarehouse.BLL.Services;
 using MaterialWarehouse.BLL.DTOs;
@@ -165,9 +165,11 @@ ordersGroup.MapPost("/", async (CreateOrderRequest request, IOrderService servic
     return result.IsSuccess ? Results.Created($"/api/orders/{result.Value.Id}", result.Value) : Results.BadRequest(result.Error);
 }).RequireAuthorization();
 
-ordersGroup.MapPost("/{id:int}/state", async (int id, string nextState, IOrderService service) =>
+ordersGroup.MapPost("/{id:int}/state", async (int id, string nextState, ClaimsPrincipal user, IOrderService service) =>
 {
-    var result = await service.TransitionOrderStateAsync(id, nextState);
+    var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+    int managerId = int.TryParse(userIdClaim, out var parsedId) ? parsedId : 0;
+    var result = await service.TransitionOrderStateAsync(id, nextState, managerId);
     return result.IsSuccess ? Results.Ok() : Results.BadRequest(result.Error);
 }).RequireAuthorization("AdminOrManager");
 
