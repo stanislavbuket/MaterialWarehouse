@@ -5,20 +5,11 @@ namespace MaterialWarehouse.BLL.Interfaces;
 
 public interface IMaterialService
 {
-    Task<Result<IEnumerable<MaterialDto>>> GetInStockMaterialsAsync();
-
     Task<Result<MaterialDto>> GetByIdAsync(int id);
-
-    Task<Result> AdjustStockAsync(int materialId, int amount);
-
-    Task<Result> ReceiveStockAsync(
-        int materialId,
-        int quantity,
-        int supplierId,
-        int managerId);
-
-    Task<Result> WriteOffStockAsync(
-        int materialId,
-        int quantity,
-        int managerId);
+    Task<Result<IEnumerable<MaterialDto>>> GetAllAsync();
+    Task<Result<MaterialDto>> CreateAsync(CreateMaterialDto dto);
+    Task<Result> UpdateAsync(int id, UpdateMaterialDto dto);
+    Task<Result> DeleteAsync(int id);
+    Task<Result<IEnumerable<MaterialDto>>> GetInStockMaterialsAsync();
+    Task<Result> AdjustStockAsync(int id, int amount);
 }

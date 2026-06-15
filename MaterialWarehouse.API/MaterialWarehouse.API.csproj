@@ -14,4 +14,9 @@
     <ProjectReference Include="..\MaterialWarehouse.BLL\MaterialWarehouse.BLL.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Constants\" />
+    <Folder Include="Controllers\" />
+  </ItemGroup>
+
 </Project>

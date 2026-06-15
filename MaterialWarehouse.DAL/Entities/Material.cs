@@ -67,4 +67,15 @@ public class Material
         }
         ReservedQuantity -= quantity;
     }
+
+    public void UpdateDetails(string name, string description, int minStockLimit, int categoryId)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            throw new ArgumentException("Назва матеріалу не може бути порожньою.");
+
+        Name = name;
+        Description = description;
+        MinStockLimit = minStockLimit;
+        CategoryId = categoryId;
+    }
 }
