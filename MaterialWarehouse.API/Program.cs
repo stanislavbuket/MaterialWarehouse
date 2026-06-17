@@ -16,7 +16,10 @@ using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddOpenApi();
+builder.Services.AddOpenApi(options =>
+{
+    options.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
+});
 
 // Налаштування Entity Framework Core з InMemory Database
 builder.Services.AddDbContext<MaterialWarehouseDbContext>(options =>
